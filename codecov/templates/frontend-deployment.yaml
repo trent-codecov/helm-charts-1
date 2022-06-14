@@ -6,38 +6,38 @@ metadata:
   {{- range $key, $val := .Values.tags }}
     {{ $key }}: {{ $val | quote }}
   {{- end }}
-  {{- range $key, $val := .Values.web.deployment.annotations }}
+  {{- range $key, $val := .Values.frontend.deployment.annotations }}
     {{ $key }}: {{ $val | quote }}
   {{- end }}
-  name: web
-  labels:
+  name: {{ .Values.frontend.name }}
+  labels: 
     chart: {{ .Chart.Name }}
     release: {{ .Release.Name | quote }}
     {{- range $key, $value := .Values.labels }}
     {{ $key }}: {{ $value | quote }}
     {{- end }}
 spec:
-  replicas: {{ .Values.web.deployment.replicas }}
+  replicas: {{ .Values.frontend.deployment.replicas }}
   selector:
     matchLabels:
-      app: {{ .Values.web.name }}
+      app: {{ .Values.frontend.name }}
   strategy:
-    type: {{ .Values.web.deployment.updateStrategy.type }}
-    {{- if eq .Values.web.deployment.updateStrategy.type "RollingUpdate" }}
+    type: {{ .Values.frontend.deployment.updateStrategy.type }}
+    {{- if eq .Values.frontend.deployment.updateStrategy.type "RollingUpdate" }}
     rollingUpdate:
-      maxSurge: {{ .Values.web.deployment.updateStrategy.maxSurge}}
-      maxUnavailable: {{ .Values.web.deployment.updateStrategy.maxUnavailable}}
+      maxSurge: {{ .Values.frontend.deployment.updateStrategy.maxSurge}}
+      maxUnavailable: {{ .Values.frontend.deployment.updateStrategy.maxUnavailable}}
     {{- end }}
   template:
     metadata:
       labels:
-        app: {{ .Values.web.name }}
+        app: {{ .Values.frontend.name }}
         release: {{ .Release.Name | quote }}
       annotations:
       {{- range $key, $val := .Values.tags }}
         {{ $key }}: {{ $val | quote }}
       {{- end }}
-      {{- range $key, $value := .Values.web.deployment.annotations }}
+      {{- range $key, $value := .Values.frontend.deployment.annotations }}
         {{ $key }}: {{ $value | quote }}
       {{- end }}
     spec:
@@ -45,15 +45,15 @@ spec:
       securityContext:
 {{ toYaml .Values.podSecurityContext | indent 10 }}
       {{- end }}
-      {{- with .Values.web.deployment.nodeSelector }}
+      {{- with .Values.frontend.deployment.nodeSelector }}
       nodeSelector:
 {{ toYaml . | indent 8 }}
       {{- end }}
-      {{- with .Values.web.deployment.affinity }}
+      {{- with .Values.frontend.deployment.affinity }}
       affinity:
 {{ toYaml . | indent 8 }}
       {{- end }}
-      {{- with .Values.web.deployment.tolerations }}
+      {{- with .Values.frontend.deployment.tolerations }}
       tolerations:
 {{ toYaml . | indent 8 }}
       {{- end }}
@@ -62,7 +62,7 @@ spec:
 {{ toYaml .Values.imagePullSecrets | indent 8 }}
       {{- end }}
       containers:
-      - image: {{ .Values.web.image }}:{{ .Values.codecovVersion }}
+      - image: {{ .Values.frontend.image }}:{{ .Values.codecovVersion }}
       {{- with .Values.extraEnvs }}
         env:
 {{ toYaml . | nindent 10 }}
@@ -72,17 +72,17 @@ spec:
 {{ toYaml .Values.envFrom | indent 10 }}
       {{- end }}
         imagePullPolicy: "{{ .Values.imagePullPolicy }}"
-        name: {{ .Values.web.name }}
+        name: {{ .Values.frontend.name }}
         ports:
-        - containerPort: {{ .Values.web.deployment.port }}
+        - containerPort: {{ .Values.frontend.deployment.port }}
           protocol: TCP
           name: http
         livenessProbe:
-{{ toYaml .Values.web.deployment.livenessProbe | indent 10 }}
+{{ toYaml .Values.frontend.deployment.livenessProbe | indent 10 }}
         readinessProbe:
-{{ toYaml .Values.web.deployment.readinessProbe | indent 10 }}
+{{ toYaml .Values.frontend.deployment.readinessProbe | indent 10 }}
         resources:
-{{ toYaml .Values.web.deployment.resources | indent 10 }}
+{{ toYaml .Values.frontend.deployment.resources | indent 10 }}
         volumeMounts:
         {{- range .Values.secretMounts }}
           - name: {{ .name }}
@@ -91,9 +91,6 @@ spec:
             subPath: {{ .subPath }}
             {{- end }}
         {{- end }}
-        - mountPath: /config
-          name: codecov-yml
-          readOnly: true
       restartPolicy: Always
       volumes:
       {{- range .Values.secretMounts }}
@@ -101,10 +98,6 @@ spec:
         secret:
           secretName: {{ .secretName }}
       {{- end }}
-      - name: codecov-yml
-        configMap:
-          name: {{ .Values.configmap.name }}
-          defaultMode: 420
       {{- if .Values.extraVolumes }}
 {{ toYaml .Values.extraVolumes | indent 8 }}
       {{- end }}

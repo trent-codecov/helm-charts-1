@@ -6,10 +6,10 @@ metadata:
   {{- range $key, $val := .Values.tags }}
     {{ $key }}: {{ $val | quote }}
   {{- end }}
-  {{- range $key, $val := .Values.web.service.annotations }}
+  {{- range $key, $val := .Values.frontend.service.annotations }}
     {{ $key }}: {{ $val | quote }}
   {{- end }}
-  name: {{ .Values.web.name }}
+  name: {{ .Values.frontend.name }}
   labels:
     chart: {{ .Chart.Name }}
     release: {{ .Release.Name | quote }}
@@ -19,10 +19,10 @@ metadata:
     {{- end }}
 spec:
   ports:
-  - port: {{ .Values.web.service.port }}
+  - port: {{ .Values.frontend.service.port }}
     protocol: TCP
-    targetPort: {{ .Values.web.deployment.port }}
+    targetPort: {{ .Values.frontend.deployment.port }}
     name: http
   selector:
-    app: {{ .Values.web.name }}
-  type: {{ .Values.web.service.type }}
+    app: {{ .Values.frontend.name }}
+  type: {{ .Values.frontend.service.type }}

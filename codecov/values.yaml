@@ -46,12 +46,12 @@ ingress:
   #    hosts:
   #      - chart-example.local
 
-web:
-  name: web
-  image: codecov/enterprise-web
+frontend:
+  name: frontend
+  image: codecov/enterprise-frontend
   deployment:
     replicas: 2
-    port: 5000
+    port: 8080
     annotations: {}
     nodeSelector: {}
     tolerations: []
@@ -79,16 +79,59 @@ web:
       maxUnavailable: 25%
     resources:
       limits:
-        cpu: 1000m
-        memory: 2048M
+        cpu: 500m
+        memory: 512M
       requests:
         cpu: 150m
         memory: 128M
   service:
     annotations: {}
-    port: 8000
+    port: 8080
     type: NodePort
 
+
+gateway:
+  name: gateway
+  image: codecov/enterprise-gateway
+  deployment:
+    annotations: {}
+    replicas: 2
+    port: 8080
+    nodeSelector: {}
+    tolerations: []
+    affinity: {}
+    livenessProbe:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 30
+      failureThreshold: 3
+      periodSeconds: 10
+      timeoutSeconds: 5
+    readinessProbe:
+      httpGet:
+        path: /
+        port: http
+      initialDelaySeconds: 10
+      failureThreshold: 3
+      successThreshold: 1
+      periodSeconds: 10
+      timeoutSeconds: 2
+    updateStrategy:
+      type: RollingUpdate
+      maxSurge: 25%
+      maxUnavailable: 25%
+    resources:
+      limits:
+        cpu: 500m
+        memory: 512M
+      requests:
+        cpu: 125m
+        memory: 128M
+  service:
+    annotations: {}
+    port: 8080
+    type: NodePort
 
 api:
   name: api

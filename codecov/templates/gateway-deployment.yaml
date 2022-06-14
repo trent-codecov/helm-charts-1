@@ -1,0 +1,106 @@
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+  {{- range $key, $val := .Values.tags }}
+    {{ $key }}: {{ $val | quote }}
+  {{- end }}
+  {{- range $key, $val := .Values.gateway.deployment.annotations }}
+    {{ $key }}: {{ $val | quote }}
+  {{- end }}
+  name: {{ .Values.gateway.name }}
+  labels: 
+    chart: {{ .Chart.Name }}
+    release: {{ .Release.Name | quote }}
+    {{- range $key, $value := .Values.labels }}
+    {{ $key }}: {{ $value | quote }}
+    {{- end }}
+spec:
+  replicas: {{ .Values.gateway.deployment.replicas }}
+  selector:
+    matchLabels:
+      app: {{ .Values.gateway.name }}
+  strategy:
+    type: {{ .Values.gateway.deployment.updateStrategy.type }}
+    {{- if eq .Values.gateway.deployment.updateStrategy.type "RollingUpdate" }}
+    rollingUpdate:
+      maxSurge: {{ .Values.gateway.deployment.updateStrategy.maxSurge}}
+      maxUnavailable: {{ .Values.gateway.deployment.updateStrategy.maxUnavailable}}
+    {{- end }}
+  template:
+    metadata:
+      labels:
+        app: {{ .Values.gateway.name }}
+        release: {{ .Release.Name | quote }}
+      annotations:
+      {{- range $key, $val := .Values.tags }}
+        {{ $key }}: {{ $val | quote }}
+      {{- end }}
+      {{- range $key, $value := .Values.gateway.deployment.annotations }}
+        {{ $key }}: {{ $value | quote }}
+      {{- end }}
+    spec:
+      {{- if .Values.podSecurityContext }}
+      securityContext:
+{{ toYaml .Values.podSecurityContext | indent 10 }}
+      {{- end }}
+      {{- with .Values.gateway.deployment.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      {{- with .Values.gateway.deployment.affinity }}
+      affinity:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      {{- with .Values.gateway.deployment.tolerations }}
+      tolerations:
+{{ toYaml . | indent 8 }}
+      {{- end }}
+      {{- if .Values.imagePullSecrets }}
+      imagePullSecrets:
+{{ toYaml .Values.imagePullSecrets | indent 8 }}
+      {{- end }}
+      containers:
+      - image: {{ .Values.gateway.image }}:{{ .Values.codecovVersion }}
+      {{- with .Values.extraEnvs }}
+        env:
+{{ toYaml . | nindent 10 }}
+      {{- end }}
+      {{- if .Values.envFrom }}
+        envFrom:
+{{ toYaml .Values.envFrom | indent 10 }}
+      {{- end }}
+        imagePullPolicy: "{{ .Values.imagePullPolicy }}"
+        name: {{ .Values.gateway.name }}
+        ports:
+        - containerPort: {{ .Values.gateway.deployment.port }}
+          protocol: TCP
+          name: http
+        livenessProbe:
+{{ toYaml .Values.gateway.deployment.livenessProbe | indent 10 }}
+        readinessProbe:
+{{ toYaml .Values.gateway.deployment.readinessProbe | indent 10 }}
+        resources:
+{{ toYaml .Values.gateway.deployment.resources | indent 10 }}
+        volumeMounts:
+        {{- range .Values.secretMounts }}
+          - name: {{ .name }}
+            mountPath: {{ .path }}
+            {{- if .subPath }}
+            subPath: {{ .subPath }}
+            {{- end }}
+        {{- end }}
+      restartPolicy: Always
+      volumes:
+      {{- range .Values.secretMounts }}
+      - name: {{ .name }}
+        secret:
+          secretName: {{ .secretName }}
+      {{- end }}
+      {{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumes | indent 8 }}
+      {{- end }}
+  {{- if .Values.extraVolumes }}
+{{ toYaml .Values.extraVolumeMounts | indent 10 }}
+  {{- end }}
